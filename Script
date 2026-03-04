@@ -1,0 +1,108 @@
+-- Services
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+
+local Player = Players.LocalPlayer
+
+-- ScreenGui
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RejoinGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = Player:WaitForChild("PlayerGui")
+
+-- Main Frame (Smaller)
+local Main = Instance.new("Frame")
+Main.Size = UDim2.new(0, 190, 0, 70)
+Main.Position = UDim2.new(0.5, -95, 0.5, -35)
+Main.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
+Main.BorderSizePixel = 0
+Main.Active = true
+Main.Parent = ScreenGui
+
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
+
+-- Title Bar (Slim)
+local TitleBar = Instance.new("Frame")
+TitleBar.Size = UDim2.new(1, 0, 0, 22)
+TitleBar.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
+TitleBar.BorderSizePixel = 0
+TitleBar.Parent = Main
+
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
+
+-- Fix bottom curve of title
+local Fix = Instance.new("Frame")
+Fix.Size = UDim2.new(1, 0, 0, 8)
+Fix.Position = UDim2.new(0, 0, 1, -8)
+Fix.BackgroundColor3 = TitleBar.BackgroundColor3
+Fix.BorderSizePixel = 0
+Fix.Parent = TitleBar
+
+-- Title Text (Smaller)
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "Rejoin"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 12
+Title.Parent = TitleBar
+
+-- Rejoin Button (Compact)
+local Rejoin = Instance.new("TextButton")
+Rejoin.Size = UDim2.new(1, -20, 0, 28)
+Rejoin.Position = UDim2.new(0, 10, 0, 32)
+Rejoin.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Rejoin.TextColor3 = Color3.fromRGB(255, 255, 255)
+Rejoin.Font = Enum.Font.Gotham
+Rejoin.TextSize = 14
+Rejoin.Text = "Rejoin Server"
+Rejoin.BorderSizePixel = 0
+Rejoin.Parent = Main
+
+Instance.new("UICorner", Rejoin).CornerRadius = UDim.new(0, 6)
+
+-- Rejoin Function
+Rejoin.MouseButton1Click:Connect(function()
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
+end)
+
+-- Dragging (Title Only)
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    Main.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
+end
+
+TitleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+TitleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
