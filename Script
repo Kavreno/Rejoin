@@ -8,6 +8,7 @@ getgenv().RejoinGUIScriptLoaded = true
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local Lighting = game:GetService("Lighting")
 
 local Player = Players.LocalPlayer
@@ -15,8 +16,51 @@ local PlayerGui = Player:WaitForChild("PlayerGui")
 
 -- Prevent duplicate GUI on reset
 if PlayerGui:FindFirstChild("RejoinGUI") then
-	return
+    return
 end
+
+-- Xeno / executor compat
+local isfile = isfile or function(path)
+    local ok, result = pcall(readfile, path)
+    return ok and result ~= nil and result ~= ""
+end
+
+local writefile = writefile or function() end
+local readfile = readfile or function() return "{}" end
+
+-- Save/Load
+local SAVE_FILE = "rejoingui_settings.json"
+
+local defaults = {
+    shadersEnabled = false,
+    keybind = "None",
+}
+
+local settings = {}
+for k, v in pairs(defaults) do settings[k] = v end
+
+local function saveSettings()
+    pcall(function()
+        writefile(SAVE_FILE, HttpService:JSONEncode(settings))
+    end)
+end
+
+local function loadSettings()
+    local ok, data = pcall(function()
+        if isfile(SAVE_FILE) then
+            return HttpService:JSONDecode(readfile(SAVE_FILE))
+        end
+    end)
+    if ok and type(data) == "table" then
+        for k in pairs(defaults) do
+            if data[k] ~= nil then
+                settings[k] = data[k]
+            end
+        end
+    end
+end
+
+loadSettings()
 
 -- ScreenGui
 local ScreenGui = Instance.new("ScreenGui")
@@ -24,88 +68,100 @@ ScreenGui.Name = "RejoinGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = PlayerGui
 
--- Main Frame
+-- Main Frame (taller for keybind row)
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 190, 0, 110)
-Main.Position = UDim2.new(0.5, -95, 0.5, -55)
-Main.BackgroundColor3 = Color3.fromRGB(38,38,38)
+Main.Size = UDim2.new(0, 190, 0, 144)
+Main.Position = UDim2.new(0.5, -95, 0.5, -72)
+Main.BackgroundColor3 = Color3.fromRGB(38, 38, 38)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Parent = ScreenGui
 
-Instance.new("UICorner",Main).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 8)
 
 -- Title Bar
 local TitleBar = Instance.new("Frame")
-TitleBar.Size = UDim2.new(1,0,0,22)
-TitleBar.BackgroundColor3 = Color3.fromRGB(32,32,32)
+TitleBar.Size = UDim2.new(1, 0, 0, 22)
+TitleBar.BackgroundColor3 = Color3.fromRGB(32, 32, 32)
 TitleBar.BorderSizePixel = 0
 TitleBar.Parent = Main
 
-Instance.new("UICorner",TitleBar).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 8)
 
--- Fix bottom rounding
 local Fix = Instance.new("Frame")
-Fix.Size = UDim2.new(1,0,0,8)
-Fix.Position = UDim2.new(0,0,1,-8)
+Fix.Size = UDim2.new(1, 0, 0, 8)
+Fix.Position = UDim2.new(0, 0, 1, -8)
 Fix.BackgroundColor3 = TitleBar.BackgroundColor3
 Fix.BorderSizePixel = 0
 Fix.Parent = TitleBar
 
--- Title
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,0,1,0)
+Title.Size = UDim2.new(1, 0, 1, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "Tools"
-Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 12
 Title.Parent = TitleBar
 
 -- Rejoin Button
 local Rejoin = Instance.new("TextButton")
-Rejoin.Size = UDim2.new(1,-20,0,28)
-Rejoin.Position = UDim2.new(0,10,0,32)
-Rejoin.BackgroundColor3 = Color3.fromRGB(50,50,50)
-Rejoin.TextColor3 = Color3.fromRGB(255,255,255)
+Rejoin.Size = UDim2.new(1, -20, 0, 28)
+Rejoin.Position = UDim2.new(0, 10, 0, 32)
+Rejoin.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Rejoin.TextColor3 = Color3.fromRGB(255, 255, 255)
 Rejoin.Font = Enum.Font.Gotham
 Rejoin.TextSize = 14
 Rejoin.Text = "Rejoin Server"
 Rejoin.BorderSizePixel = 0
 Rejoin.Parent = Main
 
-Instance.new("UICorner",Rejoin).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner", Rejoin).CornerRadius = UDim.new(0, 6)
 
 -- Shader Button
 local ShaderButton = Instance.new("TextButton")
-ShaderButton.Size = UDim2.new(1,-20,0,28)
-ShaderButton.Position = UDim2.new(0,10,0,66)
-ShaderButton.BackgroundColor3 = Color3.fromRGB(50,50,50)
-ShaderButton.TextColor3 = Color3.fromRGB(255,255,255)
+ShaderButton.Size = UDim2.new(1, -20, 0, 28)
+ShaderButton.Position = UDim2.new(0, 10, 0, 66)
+ShaderButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+ShaderButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ShaderButton.Font = Enum.Font.Gotham
 ShaderButton.TextSize = 14
 ShaderButton.Text = "Shaders: OFF"
 ShaderButton.BorderSizePixel = 0
 ShaderButton.Parent = Main
 
-Instance.new("UICorner",ShaderButton).CornerRadius = UDim.new(0,6)
+Instance.new("UICorner", ShaderButton).CornerRadius = UDim.new(0, 6)
+
+-- Keybind Button
+local KeybindButton = Instance.new("TextButton")
+KeybindButton.Size = UDim2.new(1, -20, 0, 28)
+KeybindButton.Position = UDim2.new(0, 10, 0, 100)
+KeybindButton.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+KeybindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeybindButton.Font = Enum.Font.Gotham
+KeybindButton.TextSize = 13
+KeybindButton.Text = "Bind Rejoin: " .. settings.keybind
+KeybindButton.BorderSizePixel = 0
+KeybindButton.Parent = Main
+
+Instance.new("UICorner", KeybindButton).CornerRadius = UDim.new(0, 6)
 
 -- Rejoin Function
-Rejoin.MouseButton1Click:Connect(function()
-	TeleportService:TeleportToPlaceInstance(game.PlaceId,game.JobId,Player)
-end)
+local function doRejoin()
+    TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, Player)
+end
+
+Rejoin.MouseButton1Click:Connect(doRejoin)
 
 -- Cloudy 2 Skybox
 local CloudySky = Instance.new("Sky")
 CloudySky.Name = "Cloudy2"
-
 CloudySky.SkyboxBk = "rbxassetid://225469345"
 CloudySky.SkyboxDn = "rbxassetid://225469349"
 CloudySky.SkyboxFt = "rbxassetid://225469359"
 CloudySky.SkyboxLf = "rbxassetid://225469364"
 CloudySky.SkyboxRt = "rbxassetid://225469372"
 CloudySky.SkyboxUp = "rbxassetid://225469380"
-
 CloudySky.StarCount = 0
 CloudySky.SunAngularSize = 15
 CloudySky.SunTextureId = "rbxasset://sky/sun.jpg"
@@ -115,18 +171,62 @@ CloudySky.CelestialBodiesShown = false
 
 local shadersEnabled = false
 
+local function applyShaders(state)
+    shadersEnabled = state
+    if shadersEnabled then
+        CloudySky.Parent = Lighting
+        ShaderButton.Text = "Shaders: ON"
+    else
+        CloudySky.Parent = nil
+        ShaderButton.Text = "Shaders: OFF"
+    end
+end
+
+-- Apply saved shader state on load
+applyShaders(settings.shadersEnabled)
+
 ShaderButton.MouseButton1Click:Connect(function()
+    applyShaders(not shadersEnabled)
+    settings.shadersEnabled = shadersEnabled
+    saveSettings()
+end)
 
-	shadersEnabled = not shadersEnabled
+-- Keybind System
+local bindingMode = false
 
-	if shadersEnabled then
-		CloudySky.Parent = Lighting
-		ShaderButton.Text = "Shaders: ON"
-	else
-		CloudySky.Parent = nil
-		ShaderButton.Text = "Shaders: OFF"
-	end
+KeybindButton.MouseButton1Click:Connect(function()
+    if bindingMode then return end
+    bindingMode = true
+    KeybindButton.Text = "Press a key..."
+    KeybindButton.TextColor3 = Color3.fromRGB(255, 220, 80)
+end)
 
+UserInputService.InputBegan:Connect(function(input, gpe)
+    -- Binding mode: capture next key
+    if bindingMode then
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            local name = input.KeyCode.Name
+            settings.keybind = name
+            KeybindButton.Text = "Bind Rejoin: " .. name
+            KeybindButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+            bindingMode = false
+            saveSettings()
+        end
+        return
+    end
+
+    -- Normal keybind trigger (ignore when typing in game)
+    if gpe then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if settings.keybind ~= "None" then
+            local ok, kc = pcall(function()
+                return Enum.KeyCode[settings.keybind]
+            end)
+            if ok and kc and input.KeyCode == kc then
+                doRejoin()
+            end
+        end
+    end
 end)
 
 -- Drag System
@@ -136,46 +236,36 @@ local dragStart
 local startPos
 
 local function update(input)
-	local delta = input.Position - dragStart
-
-	Main.Position = UDim2.new(
-		startPos.X.Scale,
-		startPos.X.Offset + delta.X,
-		startPos.Y.Scale,
-		startPos.Y.Offset + delta.Y
-	)
+    local delta = input.Position - dragStart
+    Main.Position = UDim2.new(
+        startPos.X.Scale,
+        startPos.X.Offset + delta.X,
+        startPos.Y.Scale,
+        startPos.Y.Offset + delta.Y
+    )
 end
 
 TitleBar.InputBegan:Connect(function(input)
-
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-
-		dragging = true
-		dragStart = input.Position
-		startPos = Main.Position
-
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-
-	end
-
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
 
 TitleBar.InputChanged:Connect(function(input)
-
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
-
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
 end)
 
 UserInputService.InputChanged:Connect(function(input)
-
-	if input == dragInput and dragging then
-		update(input)
-	end
-
+    if input == dragInput and dragging then
+        update(input)
+    end
 end)
